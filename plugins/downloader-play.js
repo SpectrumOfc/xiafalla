@@ -1,10 +1,9 @@
 import fetch from "node-fetch";
 import yts from "yt-search";
 import ytdl from 'ytdl-core';
-import axios from 'axios';
 import { youtubedl, youtubedlv2 } from '@bochilteam/scraper';
 
-let handler = async (m, { conn, command, args, text, usedPrefix }) => {
+let handler = async (m, { conn, command, args, text }) => {
     if (!text) throw `🔮𝙌𝙪𝙚 𝙚𝙨𝙩𝙖𝙨 𝙗𝙪𝙨𝙘𝙖𝙣𝙙𝙤 ?🔮\n𝙄𝙣𝙜𝙧𝙚𝙨𝙚 𝙚𝙡 𝙣𝙤𝙢𝙗𝙧𝙚 𝙙𝙚𝙡 𝙡𝙖 𝙘𝙖𝙣𝙘𝙞𝙤𝙣 𝙮 𝙣𝙤𝙢𝙗𝙧𝙚 𝙙𝙚𝙡 𝙘𝙖𝙣𝙩𝙖𝙣𝙩𝙚\n\n*Ejemplo:*\n#play brattyputy yeri mua`;
 
     try {
@@ -13,8 +12,7 @@ let handler = async (m, { conn, command, args, text, usedPrefix }) => {
 
         // Enviar mensaje inicial con detalles del video
         await conn.sendMessage(m.chat, {
-            text: `  *⇄ㅤ     ◁   ㅤ  ❚❚ㅤ     ▷ㅤ     ↻*
-03:24 ━━━━━◉─────── 06:37`,
+            text: `🎶 Buscando la canción...`,
             contextInfo: {
                 externalAdReply: {
                     title: yt_play[0].title,
@@ -32,29 +30,27 @@ let handler = async (m, { conn, command, args, text, usedPrefix }) => {
 
         try {
             const yt = await youtubedl(videoUrl).catch(async () => await youtubedlv2(videoUrl));
-            audioUrl = await yt.audio['128kbps'].download(); // Esperar a que se resuelva la URL de descarga
+            audioUrl = await yt.audio['128kbps'].download();
+            console.log("Audio URL from bochilteam:", audioUrl);
         } catch {
-            // Si falla, intentar otros métodos
             try {
                 const dataRE = await fetch(`https://api.akuari.my.id/downloader/youtube?link=${videoUrl}`);
                 const dataRET = await dataRE.json();
                 audioUrl = dataRET.mp3[1].url;
+                console.log("Audio URL from Akuari:", audioUrl);
             } catch {
-                // Intentar API alternativa
-                const lolhuman = await fetch(`https://api.lolhuman.xyz/api/ytplay?apikey=${lolkeysapi}&query=${yt_play[0].title}`);
-                const lolh = await lolhuman.json();
-                audioUrl = lolh.result.audio.link;
+                console.log("Error al obtener el audio desde Akuari.");
             }
         }
 
-        // Verificar si se obtuvo un URL de audio y enviar
         if (audioUrl) {
             await conn.sendMessage(m.chat, { audio: { url: audioUrl }, mimetype: 'audio/mpeg' }, { quoted: m });
+            console.log("Audio enviado correctamente.");
         } else {
             throw new Error("No se pudo obtener el audio.");
         }
     } catch (error) {
-        console.error(error);
+        console.error("Error en la función principal:", error);
     }
 };
 
