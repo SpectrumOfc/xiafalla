@@ -1,109 +1,68 @@
-import {watchFile, unwatchFile} from 'fs';
-import chalk from 'chalk';
-import {fileURLToPath} from 'url';
-import fs from 'fs'; 
-import * as cheerio from 'cheerio';
-import fetch from 'node-fetch';
+import fetch from "node-fetch";
+import yts from "yt-search";
+import ytdl from 'ytdl-core';
 import axios from 'axios';
-import moment from 'moment-timezone';
+import { youtubedl, youtubedlv2 } from '@bochilteam/scraper';
 
-global.botnumber = ""
+let handler = async (m, { conn, command, args, text, usedPrefix }) => {
+    if (!text) throw `🔮𝙌𝙪𝙚 𝙚𝙨𝙩𝙖𝙨 𝙗𝙪𝙨𝙘𝙖𝙣𝙙𝙤 ?🔮\n𝙄𝙣𝙜𝙧𝙚𝙨𝙚 𝙚𝙡 𝙣𝙤𝙢𝙗𝙧𝙚 𝙙𝙚𝙡 𝙡𝙖 𝙘𝙖𝙣𝙘𝙞𝙤𝙣 𝙮 𝙣𝙤𝙢𝙗𝙧𝙚 𝙙𝙚𝙡 𝙘𝙖𝙣𝙩𝙖𝙣𝙩𝙚\n\n*Ejemplo:*\n#play brattyputy yeri mua`;
 
-global.owner = [
-  ['5214274130309', '𝘾𝙧𝙚𝙖𝙙𝙤𝙧 🔮', true],
-  ['51939249284', '𝘾𝙤𝙡𝙖𝙗...🔮', true],
-  ['', '', true],
-  ['', '', true],
-  ['', '', true],
-  ['', '', true],
-  ['', '', true],
-  ['', '', false],
-  ['', '', true],
-  ['', '', true],
-  [''],
-  [''],
-  [''],
-  [''],
-  [''],
-  [''],
-  [''], 
-  [''],  
-  [''], 
-  ['']
-];
+    try {
+        const yt_play = await search(args.join(" "));
+        const videoUrl = yt_play[0].url;
 
-global.suittag = ['59168683798'];
-global.prems = ['59168683798'];
+        // Enviar mensaje inicial con detalles del video
+        await conn.sendMessage(m.chat, {
+            text: `  *⇄ㅤ     ◁   ㅤ  ❚❚ㅤ     ▷ㅤ     ↻*
+03:24 ━━━━━◉─────── 06:37`,
+            contextInfo: {
+                externalAdReply: {
+                    title: yt_play[0].title,
+                    body: "𝙓𝙞𝙖𝘽𝙤𝙩-𝙈𝘿",
+                    thumbnailUrl: yt_play[0].thumbnail,
+                    mediaType: 1,
+                    showAdAttribution: true,
+                    renderLargerThumbnail: true
+                }
+            }
+        }, { quoted: m });
 
-global.packname = '𝙓𝙄𝘼 𝘽𝙊𝙏 𝙋𝙍𝙊';
-global.author = '𝙓𝙄𝘼 𝘽𝙊𝙏 𝙋𝙍𝙊';
-global.wm = '𝙓𝙄𝘼 𝘽𝙊𝙏 𝙋𝙍𝙊';
-global.titulowm = '𝙓𝙄𝘼 𝘽𝙊𝙏 𝙋𝙍𝙊';
-global.titulowm2 = `𝙓𝙄𝘼 𝘽𝙊𝙏 𝙋𝙍𝙊`
-global.igfg = '𝙓𝙄𝘼 𝘽𝙊𝙏 𝙋𝙍𝙊';
-global.wait = '𝘾𝙖𝙧𝙜𝙖𝙣𝙙𝙤... 🔮';
+        // Descargar y enviar audio
+        let audioUrl = null;
 
-global.imagen1 = fs.readFileSync('./Menu2.jpg');
-global.imagen2 = fs.readFileSync('./src/nuevobot.jpg');
-global.imagen3 = fs.readFileSync('./src/Pre Bot Publi.png');
-global.imagen4 = fs.readFileSync('./Menu.png');
-global.imagen5 = fs.readFileSync('./src/+18-hot.jpg');
-global.imagen6 = fs.readFileSync('./Menu3.png');
+        try {
+            const yt = await youtubedl(videoUrl).catch(async () => await youtubedlv2(videoUrl));
+            audioUrl = await yt.audio['128kbps'].download(); // Esperar a que se resuelva la URL de descarga
+        } catch {
+            // Si falla, intentar otros métodos
+            try {
+                const dataRE = await fetch(`https://api.akuari.my.id/downloader/youtube?link=${videoUrl}`);
+                const dataRET = await dataRE.json();
+                audioUrl = dataRET.mp3[1].url;
+            } catch {
+                // Intentar API alternativa
+                const lolhuman = await fetch(`https://api.lolhuman.xyz/api/ytplay?apikey=${lolkeysapi}&query=${yt_play[0].title}`);
+                const lolh = await lolhuman.json();
+                audioUrl = lolh.result.audio.link;
+            }
+        }
 
-global.mods = [];
+        // Verificar si se obtuvo un URL de audio y enviar
+        if (audioUrl) {
+            await conn.sendMessage(m.chat, { audio: { url: audioUrl }, mimetype: 'audio/mpeg' }, { quoted: m });
+        } else {
+            throw new Error("No se pudo obtener el audio.");
+        }
+    } catch (error) {
+        console.error(error);
+    }
+};
 
-//* *******Tiempo***************
-global.d = new Date(new Date + 3600000);
-global.locale = 'es';
-global.dia = d.toLocaleDateString(locale, {weekday: 'long'});
-global.fecha = d.toLocaleDateString('es', {day: 'numeric', month: 'numeric', year: 'numeric'});
-global.mes = d.toLocaleDateString('es', {month: 'long'});
-global.año = d.toLocaleDateString('es', {year: 'numeric'});
-global.tiempo = d.toLocaleString('en-US', {hour: 'numeric', minute: 'numeric', second: 'numeric', hour12: true});
-//* ****************************
-global.wm2 = `▸ ${dia} ${fecha}\n▸ XiaBot`;
-global.gt = '𝙓𝙄𝘼 𝘽𝙊𝙏 𝙋𝙍𝙊';
-global.mysticbot = '𝙓𝙄𝘼 𝘽𝙊𝙏 𝙋𝙍𝙊';
-global.md = 'https://chat.whatsapp.com/LcFTUnvu0Tw1tCnA2ybdR6';
-global.mysticbot = 'https://chat.whatsapp.com/LcFTUnvu0Tw1tCnA2ybdR6';
-global.canalbot = 'https://whatsapp.com/channel/0029VaJxgcB0bIdvuOwKTM2Y';
-global.ig = 'https://www.instagram.com/usxr_angelito';
-global.github = 'https://github.com/Karim-off/XiaBot-Pro';
-global.gtb = 'https://github.com/Karim-off';
-global.waitt = '𝘾𝙖𝙧𝙜𝙖𝙣𝙙𝙤... 🔮';
-global.waittt = '𝘾𝙖𝙧𝙜𝙖𝙣𝙙𝙤... 🔮';
-global.waitttt = '𝘾𝙖𝙧𝙜𝙖𝙣𝙙𝙤... 🔮';
-global.nomorown = '59168683798';
-global.pdoc = ['application/vnd.openxmlformats-officedocument.presentationml.presentation', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/vnd.ms-excel', 'application/msword', 'application/pdf', 'text/rtf'];
-global.cmenut = '❖––––––『';
-global.cmenub = '┊✦ ';
-global.cmenuf = '╰━═┅═━––––––๑\n';
-global.cmenua = '\n⌕ ❙❘❙❙❘❙❚❙❘❙❙❚❙❘❙❘❙❚❙❘❙❙❚❙❘❙❙❘❙❚❙❘ ⌕\n     ';
-global.dmenut = '*❖─┅──┅〈*';
-global.dmenub = '*┊»*';
-global.dmenub2 = '*┊*';
-global.dmenuf = '*╰┅────────┅✦*';
-global.htjava = '⫹⫺';
-global.htki = '*⭑•̩̩͙⊱•••• ☪*';
-global.htka = '*☪ ••••̩̩͙⊰•⭑*';
-global.comienzo = '• • ◕◕════';
-global.fin = '════◕◕ • •';
-global.botdate = `⫹⫺ Date :  ${moment.tz('America/Los_Angeles').format('DD/MM/YY')}`; // Asia/Jakarta
-global.bottime = `𝗧 𝗜 𝗠 𝗘 : ${moment.tz('America/Los_Angeles').format('HH:mm:ss')}`;// America/Los_Angeles
-global.fgif = {key: {participant: '0@s.whatsapp.net'}, message: {'videoMessage': {'title': wm, 'h': `Hmm`, 'seconds': '999999999', 'gifPlayback': 'true', 'caption': bottime, 'jpegThumbnail': fs.readFileSync('./Menu.png')}}};
-global.multiplier = 99;
-global.flaaa = [
-  'https://flamingtext.com/net-fu/proxy_form.cgi?&imageoutput=true&script=water-logo&script=water-logo&fontsize=90&doScale=true&scaleWidth=800&scaleHeight=500&fontsize=100&fillTextColor=%23000&shadowGlowColor=%23000&backgroundColor=%23000&text=',
-  'https://flamingtext.com/net-fu/proxy_form.cgi?&imageoutput=true&script=crafts-logo&fontsize=90&doScale=true&scaleWidth=800&scaleHeight=500&text=',
-  'https://flamingtext.com/net-fu/proxy_form.cgi?&imageoutput=true&script=amped-logo&doScale=true&scaleWidth=800&scaleHeight=500&text=',
-  'https://www6.flamingtext.com/net-fu/proxy_form.cgi?&imageoutput=true&script=sketch-name&doScale=true&scaleWidth=800&scaleHeight=500&fontsize=100&fillTextType=1&fillTextPattern=Warning!&text=',
-  'https://www6.flamingtext.com/net-fu/proxy_form.cgi?&imageoutput=true&script=sketch-name&doScale=true&scaleWidth=800&scaleHeight=500&fontsize=100&fillTextType=1&fillTextPattern=Warning!&fillColor1Color=%23f2aa4c&fillColor2Color=%23f2aa4c&fillColor3Color=%23f2aa4c&fillColor4Color=%23f2aa4c&fillColor5Color=%23f2aa4c&fillColor6Color=%23f2aa4c&fillColor7Color=%23f2aa4c&fillColor8Color=%23f2aa4c&fillColor9Color=%23f2aa4c&fillColor10Color=%23f2aa4c&fillOutlineColor=%23f2aa4c&fillOutline2Color=%23f2aa4c&backgroundColor=%23101820&text=',
-];
-//* ************************
+handler.command = ['play'];
+handler.exp = 0;
+export default handler;
 
-const file = fileURLToPath(import.meta.url);
-watchFile(file, () => {
-  unwatchFile(file);
-  console.log(chalk.redBright('Update \'config.js\''));
-  import(`${file}?update=${Date.now()}`);
-});
+async function search(query, options = {}) {
+    const search = await yts.search({ query, hl: "es", gl: "ES", ...options });
+    return search.videos;
+}
