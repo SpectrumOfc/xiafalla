@@ -32,7 +32,7 @@ let handler = async (m, { conn, command, args, text, usedPrefix }) => {
 
         try {
             const yt = await youtubedl(videoUrl).catch(async () => await youtubedlv2(videoUrl));
-            audioUrl = yt.audio['128kbps'].download();
+            audioUrl = await yt.audio['128kbps'].download(); // Esperar a que se resuelva la URL de descarga
         } catch {
             // Si falla, intentar otros métodos
             try {
@@ -47,7 +47,7 @@ let handler = async (m, { conn, command, args, text, usedPrefix }) => {
             }
         }
 
-        // Enviar el audio automáticamente
+        // Verificar si se obtuvo un URL de audio y enviar
         if (audioUrl) {
             await conn.sendMessage(m.chat, { audio: { url: audioUrl }, mimetype: 'audio/mpeg' }, { quoted: m });
         } else {
